@@ -34,10 +34,10 @@ async fn handle_session(
 ) -> Result<()> {
     let response_session_handle = response
         .get("session_handle")
-        .unwrap()
+        .expect("cannot get session_handle")
         .clone()
         .downcast::<String>()
-        .expect("cannot down cast");
+        .expect("cannot down cast session_handle");
 
     screen_cast_proxy
         .select_sources(
@@ -57,34 +57,33 @@ async fn handle_session(
 }
 
 async fn record_screen_cast(response: HashMap<&str, Value<'_>>) -> Result<()> {
-    let stream: &Value<'_> = response.get("streams").unwrap();
+    let streams: &Value<'_> = response.get("streams").expect("cannot get streams");
 
     // get fields from nested structure inside elements
-    // NOTICE: this is not the best way to do this, but it works for now
-    let stream_node_id: u32 = stream
+    // NOTICE: this is not the best way to get node_id, but it works for now
+    let stream_node_id: u32 = streams
         .clone()
         .downcast::<Vec<Value>>()
-        .expect("cannot down cast")
+        .expect("cannot down cast streams to vec array")
         .get(0)
-        .unwrap()
+        .expect("cannot get first object from streams array")
         .clone()
         .downcast::<Structure>()
-        .expect("cannot down cast")
+        .expect("cannot down cast first object to structure")
         .fields()
         .get(0)
-        .unwrap()
+        .expect("cannot get first field from structure")
         .clone()
         .downcast::<u32>()
-        .unwrap();
+        .expect("cannot down cast first field to u32");
 
     // launch gstreamer pipeline
-    let pipeline: std::result::Result<gst::Element, gst::glib::Error> = gst::parse_launch(&format!(
-            "pipewiresrc do-timestamp=true keepalive-time=1000  path={stream_node_id} ! videorate ! video/x-raw,framerate=30/1 ! videoconvert chroma-mode=none dither=none matrix-mode=output-only ! queue ! vp8enc cpu-used=16 max-quantizer=17 deadline=1 keyframe-mode=disabled threads=8 static-threshold=1000 buffer-size=20000 ! queue ! webmmux ! filesink location=test.mp4"
-        ));
+    let gst_element: gst::Element = gst::parse_launch(&format!(
+            "pipewiresrc do-timestamp=true keepalive-time=1000 path={stream_node_id} ! videorate ! video/x-raw,framerate=30/1 ! videoconvert chroma-mode=none dither=none matrix-mode=output-only ! queue ! vp8enc cpu-used=16 max-quantizer=17 deadline=1 keyframe-mode=disabled threads=8 static-threshold=1000 buffer-size=20000 ! queue ! webmmux ! filesink location=test.mp4"
+        )).expect("failed to launch gstreamer pipeline");
 
     // start pipeline
-    let pipeline: gst::Pipeline = pipeline
-        .expect("pipeline error")
+    let pipeline: gst::Pipeline = gst_element
         .dynamic_cast::<gst::Pipeline>()
         .expect("pipeline error");
 
@@ -109,9 +108,9 @@ async fn main() -> Result<()> {
         ]))
         .await?;
 
-    let mut stream = MessageStream::from(connection);
+    let mut message_stream = MessageStream::from(connection);
 
-    while let Some(msg) = stream.try_next().await? {
+    while let Some(msg) = message_stream.try_next().await? {
         match msg.message_type() {
             MessageType::Signal => {
                 let (_, response) = msg.body::<(u32, HashMap<&str, Value>)>()?;
