@@ -7,5 +7,6 @@ edition = "2021"
 
 [dependencies]
 async-std = {version = "1.12.0", features = ["attributes"]}
-pipewire = "0.6.0"
+gstreamer = "0.20.5"
+gstreamer-app = "0.20.0"
 zbus = "3.12.0"
