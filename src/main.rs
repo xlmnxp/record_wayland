@@ -79,7 +79,7 @@ async fn record_screen_cast(response: HashMap<&str, Value<'_>>) -> Result<()> {
 
     // launch gstreamer pipeline
     let gst_element: gst::Element = gst::parse_launch(&format!(
-            "pipewiresrc do-timestamp=true keepalive-time=1000 path={stream_node_id} ! videorate ! video/x-raw,framerate=30/1 ! videoconvert chroma-mode=none dither=none matrix-mode=output-only ! queue ! vp8enc cpu-used=16 max-quantizer=17 deadline=1 keyframe-mode=disabled threads=8 static-threshold=1000 buffer-size=20000 ! queue ! webmmux ! filesink location=test.mp4"
+            "pipewiresrc do-timestamp=true keepalive-time=1000 path={stream_node_id} ! videorate ! video/x-raw,framerate=30/1 ! videoconvert chroma-mode=none dither=none matrix-mode=output-only ! queue ! vp8enc cpu-used=16 max-quantizer=17 deadline=1 keyframe-mode=disabled threads=8 static-threshold=1000 buffer-size=20000 ! queue ! webmmux ! filesink location=test.webm"
         )).expect("failed to launch gstreamer pipeline");
 
     // start pipeline
